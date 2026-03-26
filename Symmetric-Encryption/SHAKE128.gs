@@ -196,9 +196,6 @@ bytes2hex = function(bytes)
         push(hex, wordlist[floor(byte / len(wordlist))] + wordlist[byte % len(wordlist)])
     end for
     hex = join(hex, "")
-    while hex and hex[0] == "0"
-        hex = hex[1:]
-    end while
     return hex
 end function
 hex2bytes = function(hex)
