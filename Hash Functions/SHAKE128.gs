@@ -1,5 +1,5 @@
 //Author: mahocitrus
-//This is probably more secure than the old AES-CBC by finko.
+//This is probably as secure as than the old sha256 by finko.
 
 uint64 = {}
 uint64.init = function(self, lo, hi)
@@ -196,65 +196,13 @@ bytes2hex = function(bytes)
         push(hex, wordlist[floor(byte / len(wordlist))] + wordlist[byte % len(wordlist)])
     end for
     hex = join(hex, "")
-    while hex and hex[0] == "0"
-        hex = hex[1:]
-    end while
     return hex
 end function
-hex2bytes = function(hex)
-    hex = lower(hex)
-    if len(hex) % 2 != 0 then hex = "0" + hex
-    wordlist = "0123456789abcdef"
-    bytes = []
-    for i in range(0, len(hex) - 1, 2)
-        if indexOf(wordlist, hex[i]) == null or indexOf(wordlist, hex[i + 1]) == null then return null
-        push(bytes, (indexOf(wordlist, hex[i]) * len(wordlist)) + indexOf(wordlist, hex[i + 1]))
-    end for
-    return bytes
-end function
-
-SHAKE128Encrypt = function(msg, key)
-    msg = values(@msg + "")
-    key = values(@key + "")
+shake128 = function(msg, outlen = 64)
+    msg = values(msg)
     for i in indexes(msg)
         msg[i] = code(msg[i])
-        if msg[i] >= 256 then return null
     end for
-    for i in indexes(key)
-        key[i] = code(key[i])
-        if key[i] >= 256 then return null
-    end for
-    shake128 = SHAKE128.init(key + msg)
-    IV = shake128.squeeze(16)
-    shake128 = SHAKE128.init(key + IV)
-    stream = shake128.squeeze(len(msg))
-    for i in indexes(msg)
-        push(IV, bitXor(msg[i], stream[i]))
-    end for
-    return bytes2hex(IV)
-end function
-SHAKE128Decrypt = function(cipher, key)
-    cipher = values(@cipher + "")
-    key = values(@key + "")
-    for i in indexes(key)
-        key[i] = code(key[i])
-        if key[i] >= 256 then return null
-    end for
-    if len(cipher) % 2 != 0 then cipher = ["0"] + cipher
-    if len(cipher) < 32 then return null
-    IV = hex2bytes(cipher[:32])
-    cipher = hex2bytes(cipher[32:])
-    shake128 = SHAKE128.init(key + IV)
-    stream = shake128.squeeze(len(cipher))
-    plain = []
-    for i in indexes(cipher)
-        push(plain, bitXor(cipher[i], stream[i]))
-    end for
-    shake128 = SHAKE128.init(key + plain)
-    if IV != shake128.squeeze(16) then return null
-    msg = []
-    for i in indexes(plain)
-        push(msg, char(plain[i]))
-    end for
-    return join(msg, "")
+    shake = SHAKE128.init(msg)
+    return bytes2hex(shake.squeeze(outlen))
 end function
