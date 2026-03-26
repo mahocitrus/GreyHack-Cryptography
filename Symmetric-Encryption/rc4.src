@@ -1,5 +1,5 @@
 // author: rocketorbit
-// this is not as secure as aes. you should use a long key to make it more secure.
+// this is not secure as the original RC4 did not give a solution to Two-Time padding issue. For a secure Stream cipher, check out SHAKE128 instead.
 rc4 = function(data, key)
     s = range(0, 255)
     k = range(255)
