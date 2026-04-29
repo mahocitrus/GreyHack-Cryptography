@@ -1,4 +1,4 @@
-ChaCha20 = {} //This is not a object-oriented ChaCha20 class, this class contains primitives for ChaCha20.
+ChaCha20 = {} // This is not an object-oriented ChaCha20 class, this class contains primitives for ChaCha20.
 ChaCha20._constants = [1634760805, 857760878, 2036477234, 1797285236] // "expand 32-byte k"
 ChaCha20._add = function(a, b)
     return (a + b) % 4294967296
@@ -43,6 +43,24 @@ ChaCha20._block = function(state)
     return key_stream
 end function
 
+XChaCha20 = new ChaCha20 //XChaCha20 primitives
+XChaCha20._HChaCha20 = function(key, nonce)
+    s = self._constants[:]
+    for i in range(0, 31, 4)
+        push(s, key[i] + (key[i+1] * 256) + (key[i+2] * 65536) + (key[i+3]*16777216))
+    end for
+    for i in range(0, 15, 4)
+        push(s, nonce[i] + (nonce[i+1] * 256) + (nonce[i+2] * 65536) + (nonce[i+3]*16777216))
+    end for
+    for i in range(1, 10)
+        self._QR(s, 0, 4, 8, 12); self._QR(s, 1, 5, 9, 13)
+        self._QR(s, 2, 6, 10, 14); self._QR(s, 3, 7, 11, 15)
+        self._QR(s, 0, 5, 10, 15); self._QR(s, 1, 6, 11, 12)
+        self._QR(s, 2, 7, 8, 13); self._QR(s, 3, 4, 9, 14)
+    end for
+    return s[:4] + s[12:] // wordsize 32bits, directly feed into chacha20 without packing and unpacking.
+end function
+
 chacha20_encrypt = function(key, nonce, plaintext) // key, nonce, plaintext are all bytes.
     packed_key = []
     for i in range(0, 31, 4)
@@ -64,4 +82,24 @@ chacha20_encrypt = function(key, nonce, plaintext) // key, nonce, plaintext are 
 end function
 chacha20_decrypt = function(key, nonce, ciphertext)  // key, nonce, ciphertext are all bytes.
     return chacha20_encrypt(key, nonce, ciphertext)
+end function
+
+xchacha20_encrypt = function(key, nonce24, plaintext)
+    subkey = XChaCha20._HChaCha20(key, nonce24[:16])
+    nonce = nonce24[16:]
+    packed_nonce = []
+    for i in range(0, 7, 4)
+        push(packed_nonce, nonce[i] + (nonce[i+1] * 256) + (nonce[i+2] * 65536) + (nonce[i+3]*16777216)) //little-endian nonce
+    end for
+    key_stream = []
+    for i in range(0, floor(len(plaintext) / 64))
+        lo = i % 4294967296
+        hi = floor(i / 4294967296)
+        key_stream = key_stream + ChaCha20._block(ChaCha20._constants + subkey + [hi, lo] + packed_nonce)
+    end for
+    ciphertext = []
+    for i in indexes(plaintext)
+        push(ciphertext, bitXor(plaintext[i], key_stream[i]))
+    end for
+    return ciphertext
 end function
