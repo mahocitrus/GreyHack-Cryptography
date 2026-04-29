@@ -1,5 +1,5 @@
 // author: rocketorbit
-// this is not secure as the original RC4 did not give a solution to Two-Time padding issue. For a secure Stream cipher, check out SHAKE128 instead.
+// this is not secure as the original RC4 did not give a solution to Two-Time padding issue. For a secure Stream cipher, check XChaCha20(with nonce) or SHAKE128(SIV) instead.
 rc4 = function(data, key)
     s = range(0, 255)
     k = range(255)
