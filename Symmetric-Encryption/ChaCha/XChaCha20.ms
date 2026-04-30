@@ -1,26 +1,23 @@
-// Self-contained XChaCha20 encryption and decryption. currently without AEAD but confidentiality remains.
-// Recommended for use before AEAD implemention is finished.
+// Self-contained XChaCha20 encryption and decryption. without AEAD but confidentiality remains.
+// Use XChaCha20_Poly1305.ms instead.
 
 XChaCha20_encrypt = function(msg, key, nonce) // self-contained encryption function, generate random nonce if no nonce supplied.
     _constants = [1634760805, 857760878, 2036477234, 1797285236] // "expand 32-byte k"
     _shift = [1, 256, 65536, 16777216]
-    _add = function(a, b)
-        return (a + b) % 4294967296
-    end function
     _xor = function(a, b)
         return bitXor(floor(a / 65536), floor(b / 65536)) * 65536 + bitXor(a % 65536, b % 65536)
     end function
     _QR = function(s, a, b, c, d) // A quarter-round, manipulate s in-place, rotl are inlined
-        s[a] = _add(s[a], s[b])
+        s[a] = (s[a] + s[b]) % 4294967296
         s[d] = _xor(s[d], s[a])
         s[d] = ((s[d] % 65536) * 65536) + floor(s[d] / 65536)
-        s[c] = _add(s[c], s[d])
+        s[c] = (s[c] + s[d]) % 4294967296
         s[b] = _xor(s[b], s[c])
         s[b] = ((s[b] % 1048576) * 4096) + floor(s[b] / 1048576)
-        s[a] = _add(s[a], s[b])
+        s[a] = (s[a] + s[b]) % 4294967296
         s[d] = _xor(s[d], s[a])
         s[d] = ((s[d] % 16777216) * 256) + floor(s[d] / 16777216)
-        s[c] = _add(s[c], s[d])
+        s[c] = (s[c] + s[d]) % 4294967296
         s[b] = _xor(s[b], s[c])
         s[b] = ((s[b] % 33554432) * 128) + floor(s[b] / 33554432)
     end function
@@ -109,7 +106,7 @@ XChaCha20_encrypt = function(msg, key, nonce) // self-contained encryption funct
             _rounds(s)
             j = 0
             while j < len(s)
-                s[j] = _add(s[j], state[j])
+                s[j] = (s[j] + state[j]) % 4294967296
                 j = j + 1
             end while
         end if
@@ -122,23 +119,20 @@ end function
 XChaCha20_decrypt = function(cipher, key) // self-contained decryption function, gets nonce from the first 192 bits of the cipher.
     _constants = [1634760805, 857760878, 2036477234, 1797285236] // "expand 32-byte k"
     _shift = [1, 256, 65536, 16777216]
-    _add = function(a, b)
-        return (a + b) % 4294967296
-    end function
     _xor = function(a, b)
         return bitXor(floor(a / 65536), floor(b / 65536)) * 65536 + bitXor(a % 65536, b % 65536)
     end function
     _QR = function(s, a, b, c, d) // A quarter-round, manipulate s in-place, rotl are inlined
-        s[a] = _add(s[a], s[b])
+        s[a] = (s[a] + s[b]) % 4294967296
         s[d] = _xor(s[d], s[a])
         s[d] = ((s[d] % 65536) * 65536) + floor(s[d] / 65536)
-        s[c] = _add(s[c], s[d])
+        s[c] = (s[c] + s[d]) % 4294967296
         s[b] = _xor(s[b], s[c])
         s[b] = ((s[b] % 1048576) * 4096) + floor(s[b] / 1048576)
-        s[a] = _add(s[a], s[b])
+        s[a] = (s[a] + s[b]) % 4294967296
         s[d] = _xor(s[d], s[a])
         s[d] = ((s[d] % 16777216) * 256) + floor(s[d] / 16777216)
-        s[c] = _add(s[c], s[d])
+        s[c] = (s[c] + s[d]) % 4294967296
         s[b] = _xor(s[b], s[c])
         s[b] = ((s[b] % 33554432) * 128) + floor(s[b] / 33554432)
     end function
@@ -221,7 +215,7 @@ XChaCha20_decrypt = function(cipher, key) // self-contained decryption function,
             _rounds(s)
             j = 0
             while j < len(s)
-                s[j] = _add(s[j], state[j])
+                s[j] = (s[j] + state[j]) % 4294967296
                 j = j + 1
             end while
         end if
@@ -231,5 +225,6 @@ XChaCha20_decrypt = function(cipher, key) // self-contained decryption function,
     end while
     return _decode(cipherbytes)
 end function
-
-print XChaCha20_decrypt(XChaCha20_encrypt("hello xchacha20!", "passwordpasswordpasswordpassword"), "passwordpasswordpasswordpassword")
+start = time
+XChaCha20_decrypt(XChaCha20_encrypt("chacha20" * 128, "passwordpasswordpasswordpassword"), "passwordpasswordpasswordpassword")
+print time - start
